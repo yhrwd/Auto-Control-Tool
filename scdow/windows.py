@@ -1,34 +1,34 @@
 import pygetwindow as gw
-import win32gui
-import win32con
 
 def wininit(keyword: str, x: int, y: int, w: int, h: int):
-    windows = gw.getAllWindows()
-    found = False  # 用于标记是否找到窗口
-    for window in windows:
-        if keyword in window.title:
-            # 使用 _hWnd 属性获取窗口句柄。
-            ck = window._hWnd
-            print("找到窗口，句柄为：", ck)
-            found = True  # 找到窗口，将标记设置为 True
+    found_windows = []
+    for win in gw.getWindowsWithTitle(keyword):
+        if keyword in win.title:
+            found_windows.append(win)
 
-            # 激活并还原窗口。
-            window.activate()
-            win32gui.SendMessage(ck, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
-
-            # 将处理窗口大小位置。
-            window.resizeTo(w, h)
-            window.moveTo(x, y)
-
-            try:
-                # 获取窗口矩形。
-                rect = win32gui.GetWindowRect(ck)
-                print("已初始化窗口: X×Y: %d,%d, W×H: %d,%d" % rect)
-                return ck  
-            except Exception as e:
-                # 捕获并打印可能的异常。
-                print(f"处理窗口时发生错误: {e}")
-    
-    # 在所有窗口识别完后，检查是否找到窗口
-    if not found:
+    if not found_windows:
         print(f"未找到标题包含 '{keyword}' 的窗口。")
+        return None
+
+    if len(found_windows) > 1:
+        print(f"共找到 {len(found_windows)} 个相关窗口，请选择：")
+        for i, win in enumerate(found_windows, start=1):
+            print(f"{i}. {win.title}")
+        winsel = found_windows[int(input("请输入序号：")) - 1]
+    else:
+        winsel = found_windows[0]
+
+    try:
+        winsel.minimize()
+        winsel.restore()
+        # 调整窗口位置和大小
+        winsel.moveTo(x, y)
+        winsel.resizeTo(w, h)
+
+        # 验证窗口参数
+        actual_rect = (winsel.left, winsel.top, winsel.width, winsel.height)
+        print("初始化成功\n", f"窗口参数: X={actual_rect[0]}, Y={actual_rect[1]}," f"W={actual_rect[2]}, H={actual_rect[3]}")
+        return winsel
+    except Exception as e:
+        print(f"处理窗口时发生错误: {e}")
+        return None
